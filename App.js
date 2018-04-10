@@ -58,10 +58,10 @@ class Geolocation extends Component {
         super(props);
 
         this.state = {
-            // latitude: null,
-            // longitude: null,
-            // error: null,
-            // speed: []
+            latitude: null,
+            longitude: null,
+            error: null,
+            speed: []
 
         };
     }
