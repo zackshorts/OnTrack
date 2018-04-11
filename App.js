@@ -8,7 +8,7 @@ import React, { Component } from 'react';
 import {
     Platform,
     StyleSheet,
-    Text,
+    Text, TouchableHighlight,
     View
 } from 'react-native';
 
@@ -48,12 +48,18 @@ const styles = StyleSheet.create({
         fontSize: 50,
         textAlign: 'center',
         marginBottom:30
+    },
+    button: {
+        alignItems: 'center',
+        backgroundColor: '#DDD',
+        padding:10,
     }
 });
 
 type Props = {};
 
 class Geolocation extends Component {
+
     constructor(props) {
         super(props);
 
@@ -61,44 +67,94 @@ class Geolocation extends Component {
             latitude: null,
             longitude: null,
             error: null,
-            speed: []
-
+            speed: null,
+            goal: 6.0
         };
     }
 
     componentDidMount() {
-        this.watchId = navigator.geolocation.watchPosition(
-            (position) => {
-                this.setState({
-                    latitude: position.coords.latitude,
-                    longitude: position.coords.longitude,
-                    speed: position.coords.speed,
-                    error: null,
-                });
-            },
-            (error) => this.setState({ error: error.message }),
-            { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000, distanceFilter: .000001 },
-        );
+
+        setInterval(() => {
+           navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    this.setState({
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                        speed: position.coords.speed < 0 ? 0 : position.coords.speed,
+                        error: null,
+                        speedCounter: ++this.state.speedCounter,
+                        averageSpeed: (this.state.averageSpeed*(this.state.speedCounter-1)+position.coords.speed)/this.state.speedCounter
+                    });
+                },
+                (error) => this.setState({error: error.message}),
+                {enableHighAccuracy: true, timeout: 2000, maximumAge: 1000},
+            );
+        } , 100);
     }
 
-    componentWillUnmount() {
-        navigator.geolocation.clearWatch(this.watchId);
-    }
+    // componentWillUnmount() {
+    //     // navigator.geolocation.clearWatch(this.watchId);
+    // }
+
+    onIncrease = () => {
+        let increasedGoal = this.state.goal+(0.1);
+        let fixedGoal;
+        fixedGoal = parseFloat(increasedGoal.toFixed(1));
+        this.setState({
+            goal: fixedGoal
+        })
+        console.log(this.state.speed);
+    };
+
+    onDecrease = () => {
+        let decreasedGoal = this.state.goal-(0.1);
+        let fixedGoal;
+        fixedGoal = parseFloat(decreasedGoal.toFixed(1));
+        this.setState({
+            goal: fixedGoal
+        })
+        console.log(this.state.speed);
+
+    };
 
     render() {
         return (
 
             <View style={styles.main}>
                 <Text style={styles.header}>On Track</Text>
-                <Text style={styles.text}>Starting Location:</Text> <Text style={styles.text}>({this.state.latitude}, {this.state.longitude})</Text>
+                <Text style={styles.text}>Starting Location:</Text> <Text style={styles.text}>({parseFloat(this.state.latitude).toFixed(4)}, {parseFloat(this.state.longitude).toFixed(4)})</Text>
                 {this.state.error ? <Text>Error: {this.state.error}</Text> : null}
                 <Text style={styles.text}>Speed: {this.state.speed} </Text>
 
+
+                <View>
+
+                    <View style={{flexDirection:'row', marginBottom:10, backgroundColor: '#ddd', justifyContent: 'space-evenly'}}>
+                        <TouchableHighlight underlayColor="#878787" style={styles.button} onPress={this.onDecrease}>
+                            <Text> Decrease Goal </Text>
+                        </TouchableHighlight>
+
+                        <TouchableHighlight underlayColor="#878787" style={styles.button} onPress={this.onIncrease}>
+                            <Text> Increase Goal </Text>
+                        </TouchableHighlight>
+                    </View>
+                    <View>
+                        <Text style={styles.text}>
+                            { this.state.goal !== 0 ? this.state.goal: null} mph
+                        </Text>
+                    </View>
+                    <View>
+                        <TouchableHighlight underlayColor="#878787" style={styles.button}>
+                            <Text> Start </Text>
+                        </TouchableHighlight>
+                    </View>
+                </View>
+
             </View>
-
-
         );
     }
 }
+
+
 
 export default Geolocation;
