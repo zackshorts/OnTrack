@@ -12,6 +12,7 @@ import {
     View
 } from 'react-native';
 
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -44,21 +45,55 @@ const styles = StyleSheet.create({
     },
     header: {
         color: 'white',
-        fontFamily: 'AppleSDGothicNeo-Medium',
-        fontSize: 50,
+        fontFamily: 'AppleSDGothicNeo-Thin',
+        fontSize: 60,
         textAlign: 'center',
-        marginBottom:30
+        marginBottom:30,
+        fontWeight: '300'
     },
     button: {
         alignItems: 'center',
         backgroundColor: '#DDD',
         padding:10,
+        borderRadius: 10
+    },
+    leftButton: {
+        marginRight: 18
     }
 });
 
 type Props = {};
 
+// Import the react-native-sound module
+let Sound = require('react-native-sound');
+
+// Enable playback in silence mode
+Sound.setCategory('Playback');
+
+var speed_up_sound = new Sound('voice_speed_up.mp3', Sound.MAIN_BUNDLE, (error) => {
+    if (error) {
+        console.log('failed to load the sound', error);
+        return;
+    }
+    // loaded successfully
+});
+
+// Play the sound with an onEnd callback
+speed_up_sound.play((success) => {
+    if (success) {
+        console.log('successfully finished playing');
+    } else {
+        console.log('playback failed due to audio decoding errors');
+        // reset the player to its uninitialized state (android only)
+        // this is the only option to recover after an error occured and use the player again
+        speed_up_sound.reset();
+    }
+});
+
+let refreshIntervalId;
+
 class Geolocation extends Component {
+
 
     constructor(props) {
         super(props);
@@ -67,34 +102,20 @@ class Geolocation extends Component {
             latitude: null,
             longitude: null,
             error: null,
-            speed: null,
-            goal: 6.0
+            speed: 0.0,
+            goal: 6.0,
+            speedCounter: 0,
+            averageSpeed: 0.0
         };
     }
 
     componentDidMount() {
 
-        setInterval(() => {
-           navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    this.setState({
-                        latitude: position.coords.latitude,
-                        longitude: position.coords.longitude,
-                        speed: position.coords.speed < 0 ? 0 : position.coords.speed,
-                        error: null,
-                        speedCounter: ++this.state.speedCounter,
-                        averageSpeed: (this.state.averageSpeed*(this.state.speedCounter-1)+position.coords.speed)/this.state.speedCounter
-                    });
-                },
-                (error) => this.setState({error: error.message}),
-                {enableHighAccuracy: true, timeout: 2000, maximumAge: 1000},
-            );
-        } , 100);
     }
 
-    // componentWillUnmount() {
-    //     // navigator.geolocation.clearWatch(this.watchId);
-    // }
+    componentWillUnmount() {
+
+    }
 
     onIncrease = () => {
         let increasedGoal = this.state.goal+(0.1);
@@ -102,7 +123,7 @@ class Geolocation extends Component {
         fixedGoal = parseFloat(increasedGoal.toFixed(1));
         this.setState({
             goal: fixedGoal
-        })
+        });
         console.log(this.state.speed);
     };
 
@@ -112,40 +133,80 @@ class Geolocation extends Component {
         fixedGoal = parseFloat(decreasedGoal.toFixed(1));
         this.setState({
             goal: fixedGoal
-        })
+        });
         console.log(this.state.speed);
-
     };
+
+    onStart = () => {
+        refreshIntervalId = setInterval(() => {
+            if(this.state.averageSpeed < this.state.goal && this.state.speedCounter % 4 === 0) speed_up_sound.play();
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    this.setState({
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                        speed: position.coords.speed <= 0 ? 0.00 : position.coords.speed*2.23694, //This will convert m/s to mph
+                        error: null,
+                        speedCounter: ++this.state.speedCounter,
+                        averageSpeed: ((this.state.averageSpeed*(this.state.speedCounter-1)+this.state.speed)/this.state.speedCounter)
+                    });
+                },
+
+                (error) => this.setState({error: error.message}),
+                {enableHighAccuracy: true, timeout: 20000, maximumAge: 1000},
+            );
+        } , 1500);
+    };
+
+    onStop = () => {
+
+        clearInterval(refreshIntervalId);
+    };
+
+    onReset = () => {
+        this.setState({
+            speed: 0,
+            averageSpeed: 0,
+            speedCounter: 0
+        });
+    }
 
     render() {
         return (
 
             <View style={styles.main}>
                 <Text style={styles.header}>On Track</Text>
-                <Text style={styles.text}>Starting Location:</Text> <Text style={styles.text}>({parseFloat(this.state.latitude).toFixed(4)}, {parseFloat(this.state.longitude).toFixed(4)})</Text>
-                {this.state.error ? <Text>Error: {this.state.error}</Text> : null}
-                <Text style={styles.text}>Speed: {this.state.speed} </Text>
+                <Text style={[styles.text, {marginRight:5, marginLeft: 5}]}>Current: {parseFloat(this.state.speed).toFixed(2)} mph</Text>
 
 
                 <View>
+                    <Text style={styles.text}>Average: { this.state.speedCounter !== 0 ? parseFloat(this.state.averageSpeed.toFixed(2)) : parseFloat(0.00).toFixed(2)} mph</Text>
 
-                    <View style={{flexDirection:'row', marginBottom:10, backgroundColor: '#ddd', justifyContent: 'space-evenly'}}>
-                        <TouchableHighlight underlayColor="#878787" style={styles.button} onPress={this.onDecrease}>
-                            <Text> Decrease Goal </Text>
+                    <Text style={[styles.text, {marginTop:75, marginBottom: 10}]}>Goal: { this.state.goal !== 0 ? parseFloat(this.state.goal).toFixed(1): parseFloat(0).toFixed(1)} mph</Text>
+                    <View style={{flexDirection:'row', marginBottom:10, justifyContent: 'center',
+                        alignItems: 'center',}}>
+                        <TouchableHighlight underlayColor="#878787" style={[styles.button, styles.leftButton]} onPress={this.onDecrease}>
+                            <Text style={{fontSize:50, width:80, height:80, textAlign:'center'}}> - </Text>
                         </TouchableHighlight>
 
                         <TouchableHighlight underlayColor="#878787" style={styles.button} onPress={this.onIncrease}>
-                            <Text> Increase Goal </Text>
+                            <Text style={{fontSize:50, width:80, height:80, textAlign:'center'}}> + </Text>
+                        </TouchableHighlight>
+                    </View>
+
+                    <View style={{marginTop:50, marginBottom:15}}>
+                        <TouchableHighlight underlayColor="#878787" style={[styles.button, {width:300}]} onPress={this.onStart}>
+                            <Text> Start </Text>
+                        </TouchableHighlight>
+                    </View>
+                    <View style={{marginBottom:15}}>
+                        <TouchableHighlight underlayColor="#878787" style={styles.button} onPress={this.onStop}>
+                            <Text> Stop </Text>
                         </TouchableHighlight>
                     </View>
                     <View>
-                        <Text style={styles.text}>
-                            { this.state.goal !== 0 ? this.state.goal: null} mph
-                        </Text>
-                    </View>
-                    <View>
-                        <TouchableHighlight underlayColor="#878787" style={styles.button}>
-                            <Text> Start </Text>
+                        <TouchableHighlight underlayColor="#878787" style={styles.button} onPress={this.onReset}>
+                            <Text> Reset </Text>
                         </TouchableHighlight>
                     </View>
                 </View>
