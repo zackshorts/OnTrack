@@ -195,12 +195,12 @@ class Geolocation extends Component {
                     </View>
 
                     <View style={{marginTop:50, marginBottom:15}}>
-                        <TouchableHighlight underlayColor="#878787" style={[styles.button, {width:300}]} onPress={this.onStart}>
+                        <TouchableHighlight underlayColor="darkgreen" style={[styles.button, {width:300}]} onPress={this.onStart}>
                             <Text> Start </Text>
                         </TouchableHighlight>
                     </View>
                     <View style={{marginBottom:15}}>
-                        <TouchableHighlight underlayColor="#878787" style={styles.button} onPress={this.onStop}>
+                        <TouchableHighlight underlayColor="red" style={styles.button} onPress={this.onStop}>
                             <Text> Stop </Text>
                         </TouchableHighlight>
                     </View>
