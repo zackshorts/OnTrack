@@ -1,7 +1,9 @@
 /**
  * On Track -- React Native App
  * https://github.com/zackshorts/OnTrack
- * CS456 User Experience
+ * BYU CS456 User Experience
+ *
+ * Created by Zack Shorts
  */
 
 import React, { Component } from 'react';
@@ -155,7 +157,7 @@ class Geolocation extends Component {
                 (error) => this.setState({error: error.message}),
                 {enableHighAccuracy: true, timeout: 20000, maximumAge: 1000},
             );
-        } , 1500);
+        } , 4000);
     };
 
     onStop = () => {
